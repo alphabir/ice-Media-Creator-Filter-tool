@@ -18,7 +18,6 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const extractHandles = (text: string): string[] => {
-    // Better regex to catch @handles even in messy CSV/Text
     const handleRegex = /@[\w.]{1,30}/g;
     const matches = text.match(handleRegex);
     return matches ? Array.from(new Set(matches)) : [];
@@ -40,8 +39,7 @@ const App: React.FC = () => {
 
       if (handles.length > 0) {
         setLoadingStage(`Fetching live Meta signals for ${handles.length} creators...`);
-        // Limit Meta signals fetch to avoid API rate limits during bulk but give enough context
-        const MAX_META_FETCH = 15; 
+        const MAX_META_FETCH = 20; 
         const metadataResults: InstagramMetadata[] = await Promise.all(
           handles.slice(0, MAX_META_FETCH).map(handle => fetchCreatorSignals(handle))
         );
@@ -52,13 +50,14 @@ const App: React.FC = () => {
             SIGNAL [${m.handle}]:
             - Bio: ${m.biography}
             - Followers: ${m.followers_count}
-            - Recent Themes: ${m.recent_captions?.join(' | ')}
+            - Total Media: ${m.media_count}
+            - Last 30 Post Metrics: ${m.recent_media?.map(rm => `(L:${rm.like_count}, C:${rm.comments_count})`).join(', ')}
           `).join('\n');
 
         enrichedInput = `[ROSTER_CONTEXT]\nTotal Creators: ${handles.length}\n${inputText}\n\n[DETAILED_SIGNALS]\n${metadataString}\n[/DETAILED_SIGNALS]`;
       }
 
-      setLoadingStage(`Generating bulk intelligence for ${handles.length || 'uploaded'} profiles...`);
+      setLoadingStage(`Calculating Median Engagement Rates for last 30 posts...`);
       const response = await analyzeCreators(enrichedInput, imageData);
       setResults(response);
     } catch (err: any) {
@@ -116,7 +115,7 @@ const App: React.FC = () => {
             </div>
             <div className="text-center space-y-2">
               <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{loadingStage}</h3>
-              <p className="text-slate-500 font-medium">Ice Media Labs is synthesizing multi-channel signals.</p>
+              <p className="text-slate-500 font-medium">Ice Media Labs is calculating engagement rate based on the median of the last 30 posts.</p>
               <div className="flex justify-center space-x-1 mt-6">
                 <div className="w-1 h-4 bg-indigo-200 animate-bounce delay-75"></div>
                 <div className="w-1 h-6 bg-indigo-400 animate-bounce delay-150"></div>
@@ -142,7 +141,7 @@ const App: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Intelligence Roster</h2>
-                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{results.creators.length} Profiles Analyzed • Proper Agency View</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{results.creators.length} Profiles Analyzed • Median Engagement Methodology</p>
                 </div>
               </div>
               <button 
@@ -165,7 +164,7 @@ const App: React.FC = () => {
       <footer className="bg-white border-t border-slate-200 py-12 mt-20">
         <div className="container mx-auto px-4 text-center">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">
-            ICE MEDIA LABS • PROBABILISTIC AUDIENCE INTELLIGENCE • AGENCY ROSTER MODE
+            ICE MEDIA LABS • MEDIAN-BASED ENGAGEMENT INTELLIGENCE • AGENCY ROSTER MODE
           </p>
         </div>
       </footer>

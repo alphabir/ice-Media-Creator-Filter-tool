@@ -37,7 +37,7 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
   };
 
   const downloadCSV = () => {
-    const headers = ['Handle', 'Primary Niche', 'Overall Tier', 'Primary Region', 'Density %', 'Reach', 'Campaign Score'];
+    const headers = ['Handle', 'Primary Niche', 'Overall Tier', 'Primary Region', 'Density %', 'Reach', 'Campaign Score', 'Brand Summary'];
     const rows = data.map(c => [
       c.handle,
       c.contentIntelligence.primaryNiche,
@@ -45,7 +45,8 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
       c.regions.primary.name,
       c.regions.primary.percentage,
       c.reachEstimation.category,
-      c.campaignFit.score
+      c.campaignFit.score,
+      `"${c.brandSummary.replace(/"/g, '""')}"`
     ]);
     
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -62,7 +63,6 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
 
   return (
     <div className="bg-white">
-      {/* Table Actions */}
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
         <div className="relative flex-grow max-w-md">
           <input 
@@ -139,13 +139,6 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
                 </td>
               </tr>
             ))}
-            {filteredData.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-bold italic">
-                  No creators found matching your search criteria.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
@@ -153,7 +146,6 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
       {selectedCreator && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4">
           <div className="bg-white rounded-[40px] shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto border border-slate-200 flex flex-col animate-in zoom-in fade-in duration-300">
-            {/* Modal Header */}
             <div className="p-10 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-20">
               <div className="flex items-center space-x-6">
                 <div className="h-20 w-20 rounded-3xl bg-slate-900 flex items-center justify-center text-white font-black text-4xl shadow-2xl shadow-slate-200">
@@ -165,7 +157,7 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
                     <span className={`text-[10px] font-black px-3 py-1 rounded-xl border ${getTierColor(selectedCreator.kpiAnalysis.overallTier)} uppercase tracking-[0.2em]`}>
                       {selectedCreator.kpiAnalysis.overallTier}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-black tracking-widest uppercase">• Agency Intelligence Verified</span>
+                    <span className="text-[10px] text-slate-400 font-black tracking-widest uppercase">• {selectedCreator.contentIntelligence.primaryNiche} Expert</span>
                   </div>
                 </div>
               </div>
@@ -178,14 +170,18 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
             </div>
 
             <div className="p-10 space-y-12 bg-slate-50/30">
-              {/* KPI pillar section */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center">
-                    Performance KPI Rationale
-                  </h4>
-                </div>
+              {/* Brand Summary Section */}
+              <div className="bg-white p-8 rounded-[32px] border-l-8 border-indigo-600 shadow-sm">
+                <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-3">Brand & Niche Summary</h4>
+                <p className="text-lg font-bold text-slate-800 leading-relaxed italic">
+                  "{selectedCreator.brandSummary}"
+                </p>
+              </div>
 
+              <div className="space-y-6">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center">
+                  Performance KPI Rationale
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {[
                     { label: 'Awareness', data: selectedCreator.kpiAnalysis.awareness, icon: '👁️' },
@@ -214,130 +210,84 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Regional State Density */}
                 <div className="lg:col-span-2 space-y-6 bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm flex flex-col">
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center mb-4">
                     Audience Regional Breakdown
                   </h4>
-                  
-                  {selectedCreator.stateBreakdown && selectedCreator.stateBreakdown.length > 0 ? (
+                  {selectedCreator.stateBreakdown && (
                     <div className="flex-grow overflow-y-auto pr-4" style={{ maxHeight: '500px' }}>
-                      <div style={{ height: `${Math.max(selectedCreator.stateBreakdown.length * 35, 400)}px`, minWidth: '300px' }}>
+                      <div style={{ height: `${selectedCreator.stateBreakdown.length * 35}px` }}>
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart 
-                            layout="vertical" 
-                            data={selectedCreator.stateBreakdown.sort((a,b) => b.percentage - a.percentage)}
-                            margin={{ left: 40, right: 20 }}
-                          >
+                          <BarChart layout="vertical" data={selectedCreator.stateBreakdown.sort((a,b) => b.percentage - a.percentage)}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                             <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} unit="%" />
-                            <YAxis 
-                              dataKey="state" 
-                              type="category" 
-                              fontSize={10} 
-                              axisLine={false} 
-                              tickLine={false} 
-                              width={140} 
-                              tick={{fill: '#475569', fontWeight: 800}} 
-                            />
-                            <Tooltip 
-                              cursor={{fill: '#f8fafc'}}
-                              contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', padding: '16px' }} 
-                            />
+                            <YAxis dataKey="state" type="category" fontSize={10} axisLine={false} tickLine={false} width={140} tick={{fill: '#475569', fontWeight: 800}} />
+                            <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', padding: '16px' }} />
                             <Bar dataKey="percentage" fill="#10b981" radius={[0, 8, 8, 0]} barSize={16} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
-                  ) : (
-                    <div className="h-64 flex items-center justify-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
-                      <p className="text-slate-400 text-sm font-black uppercase tracking-widest italic">Insufficient Regional Signals</p>
-                    </div>
                   )}
                 </div>
 
-                {/* Demographics Card */}
                 <div className="space-y-8 bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center">
                     Audience Demographics
                   </h4>
-                  
                   <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={selectedCreator.demographics.ageGroups}>
                         <XAxis dataKey="range" fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontWeight: 700}} />
-                        <Tooltip 
-                          contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)' }} 
-                        />
+                        <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)' }} />
                         <Bar dataKey="percentage" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={30} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Gender Skew</span>
-                      <div className="text-sm font-black text-slate-900 flex justify-between">
-                         <span className="text-blue-500">M:{selectedCreator.demographics.genderSkew.male}%</span>
-                         <span className="text-pink-500">F:{selectedCreator.demographics.genderSkew.female}%</span>
-                      </div>
+                    <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100 text-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Metro Focus</span>
+                      <div className="text-sm font-black text-slate-900">{selectedCreator.demographics.metroSplit.metro}%</div>
                     </div>
-                    <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Urban Split</span>
-                      <div className="text-sm font-black text-slate-900">
-                         Metro: {selectedCreator.demographics.metroSplit.metro}%
-                      </div>
+                    <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100 text-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Gender Skew</span>
+                      <div className="text-sm font-black text-pink-500">F:{selectedCreator.demographics.genderSkew.female}%</div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                 {/* Reasoning */}
                  <div className="bg-slate-900 text-white p-10 rounded-[40px] shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10"></div>
                     <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-6 flex items-center">
-                      <span className="w-2 h-2 bg-indigo-400 rounded-full mr-2"></span>
                       Strategy Intelligence
                     </h4>
                     <div className="space-y-6">
                       <div>
-                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Audience Intent</h5>
-                        <p className="text-sm font-bold text-white leading-relaxed">
-                          {selectedCreator.contentIntelligence.audienceIntentDetails}
-                        </p>
+                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Audience Psychology</h5>
+                        <p className="text-sm font-bold text-white leading-relaxed">{selectedCreator.contentIntelligence.audienceIntentDetails}</p>
                       </div>
                       <div className="pt-6 border-t border-white/10">
-                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Growth Forecast</h5>
-                        <p className="text-xs font-medium text-indigo-100 leading-relaxed italic">
-                          {selectedCreator.reachEstimation.reasoning}
-                        </p>
+                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Growth Reasonings</h5>
+                        <p className="text-xs font-medium text-indigo-100 leading-relaxed italic">{selectedCreator.reachEstimation.reasoning}</p>
                       </div>
                     </div>
                  </div>
 
-                 {/* Campaign Fit */}
                  <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">
-                      Recommended Brand Alignments
-                    </h4>
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Campaign Strategy</h4>
                     <div className="flex flex-wrap gap-3">
                       {selectedCreator.campaignFit.recommendedCategories.map((cat, i) => (
-                        <span key={i} className="px-5 py-2 bg-slate-900 text-white text-[10px] font-black rounded-2xl uppercase tracking-[0.1em]">
-                          {cat}
-                        </span>
+                        <span key={i} className="px-5 py-2 bg-slate-900 text-white text-[10px] font-black rounded-2xl uppercase tracking-[0.1em]">{cat}</span>
                       ))}
                     </div>
                     <div className="p-6 bg-red-50 rounded-[32px] border border-red-100">
-                      <h5 className="text-[10px] font-black text-red-700 uppercase mb-3 tracking-widest flex items-center">
-                        <span className="mr-2">🚩</span> Cautionary Flags
-                      </h5>
+                      <h5 className="text-[10px] font-black text-red-700 uppercase mb-3 tracking-widest flex items-center">🚩 Risk Flags</h5>
                       <div className="space-y-2">
                         {selectedCreator.campaignFit.riskFlags.length > 0 ? selectedCreator.campaignFit.riskFlags.map((risk, i) => (
-                          <div key={i} className="text-xs text-red-900 flex items-start font-bold">
-                            • {risk}
-                          </div>
-                        )) : <div className="text-xs text-slate-400 font-bold italic">No critical risk factors detected.</div>}
+                          <div key={i} className="text-xs text-red-900 flex items-start font-bold">• {risk}</div>
+                        )) : <div className="text-xs text-slate-400 font-bold italic">Clean brand safety profile.</div>}
                       </div>
                     </div>
                  </div>
@@ -345,9 +295,7 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
             </div>
 
             <div className="p-8 bg-slate-50 border-t border-slate-100 rounded-b-[40px] text-center">
-              <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">
-                Ice Media Labs • Probabilistic Analysis Reporting • Final Agency Verification Required
-              </p>
+              <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">ICE MEDIA LABS • PROPER AGENCY INTELLIGENCE OUTPUT</p>
             </div>
           </div>
         </div>

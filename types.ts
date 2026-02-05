@@ -51,6 +51,7 @@ export interface KPIAnalysis {
 
 export interface AnalysisResult {
   handle: string;
+  brandSummary: string; // New: Summary of brand/niche based on bio and content
   regions: {
     primary: RegionSplit;
     secondary: RegionSplit[];
@@ -68,7 +69,7 @@ export interface AnalysisResult {
     category: ReachCategory;
     reasoning: string;
   };
-  kpiAnalysis: KPIAnalysis; // New: KPI Evaluation Logic
+  kpiAnalysis: KPIAnalysis;
   demographics: {
     ageGroups: { range: string; percentage: number }[];
     genderSkew: { male: number; female: number; other: number };

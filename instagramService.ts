@@ -8,7 +8,11 @@ export interface InstagramMetadata {
   media_count?: number;
   name?: string;
   profile_picture_url?: string;
-  recent_captions?: string[];
+  recent_media?: {
+    caption: string;
+    like_count: number;
+    comments_count: number;
+  }[];
   error?: string;
 }
 
@@ -51,8 +55,8 @@ export async function fetchCreatorSignals(handle: string): Promise<InstagramMeta
       return { handle, error: "The linked FB Page does not have an Instagram Business account associated." };
     }
 
-    // 3. Use Business Discovery to get data for the target handle
-    const discoveryUrl = `https://graph.facebook.com/v21.0/${igId}?fields=business_discovery.username(${cleanHandle}){name,username,biography,followers_count,media_count,profile_picture_url,media{caption}}&access_token=${accessToken}`;
+    // 3. Use Business Discovery to get data for the target handle with metrics for the last 30 posts
+    const discoveryUrl = `https://graph.facebook.com/v21.0/${igId}?fields=business_discovery.username(${cleanHandle}){name,username,biography,followers_count,media_count,profile_picture_url,media.limit(30){caption,like_count,comments_count}}&access_token=${accessToken}`;
     
     const discoveryResponse = await fetch(discoveryUrl);
     const discoveryData = await discoveryResponse.json();
@@ -69,7 +73,11 @@ export async function fetchCreatorSignals(handle: string): Promise<InstagramMeta
       followers_count: profile.followers_count,
       media_count: profile.media_count,
       profile_picture_url: profile.profile_picture_url,
-      recent_captions: profile.media?.data?.slice(0, 5).map((m: any) => m.caption) || []
+      recent_media: profile.media?.data?.map((m: any) => ({
+        caption: m.caption || "",
+        like_count: m.like_count || 0,
+        comments_count: m.comments_count || 0
+      })) || []
     };
   } catch (err) {
     console.error(`Error fetching signals for ${handle}:`, err);

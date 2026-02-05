@@ -9,7 +9,7 @@ const KPI_METRIC_SCHEMA = {
   properties: {
     category: { type: Type.STRING, description: "Must be 'Good to Go', 'Average', or 'Low'" },
     score: { type: Type.NUMBER, description: "Scale of 1-100" },
-    insight: { type: Type.STRING, description: "Highly specific reasoning derived from metrics and content signals." }
+    insight: { type: Type.STRING, description: "Specific reasoning derived from metrics and content signals." }
   },
   required: ["category", "score", "insight"]
 };
@@ -23,6 +23,7 @@ const ANALYSIS_SCHEMA = {
         type: Type.OBJECT,
         properties: {
           handle: { type: Type.STRING },
+          brandSummary: { type: Type.STRING },
           regions: {
             type: Type.OBJECT,
             properties: {
@@ -131,7 +132,7 @@ const ANALYSIS_SCHEMA = {
             required: ["score", "recommendedCategories", "riskFlags"]
           }
         },
-        required: ["handle", "regions", "kpiAnalysis", "contentIntelligence", "reachEstimation", "demographics", "campaignFit"]
+        required: ["handle", "brandSummary", "regions", "kpiAnalysis", "contentIntelligence", "reachEstimation", "demographics", "campaignFit"]
       }
     },
     summary: { type: Type.STRING }
@@ -149,23 +150,32 @@ export async function analyzeCreators(inputs: string, images?: { data: string; m
   const systemInstruction = `
     You are the Ice Media Labs AI Creator Intelligence Agent.
     
-    TASK: Analyze the provided list of creators in BULK. 
-    Maintain high precision for every single entry in the roster.
+    CORE KPI LOGIC (STRICT):
+    Calculate the 'Engagement Rate' using the following algorithm:
+    1. Identify the metrics for the last 30 posts (images, carousels, reels).
+    2. Calculate the MEDIAN Likes (Avg. Likes) and MEDIAN Comments (Avg. Comments) from these posts.
+    3. Formula: Engagement Rate = ((Median Likes + Median Comments) / Total Followers) * 100.
+    
+    You MUST cite the calculated Engagement Rate percentage in the 'engagement.insight' field.
+    Example: "Calculating an engagement rate of 4.2% using the median likes and comments of the last 30 posts..."
 
-    KPI INSIGHT GUIDELINES (MANDATORY):
-    - 'Good to Go': Use metrics-driven insights like 'High engagement rate vs category avg indicates strong connection' or 'Exceptional reach with high save rate suggests content value'.
-    - 'Average': Use insights like 'Consistent reach but low shares/saves indicate passive consumption' or 'Moderate growth with stable engagement but lacks high conversion signals'.
-    - 'Low': Use insights like 'Low conversion rate despite high followers suggests audience mismatch' or 'Stagnant engagement signals indicate potential burnout or content fatigue'.
+    ANALYTICAL DEPTH:
+    For every creator, perform a proper analysis of:
+    1. All visible posts (captions, likes, comments) provided in signals.
+    2. Content themes and consistency.
+    3. Audience sentiment and intent.
+
+    KPI INSIGHT TEMPLATES:
+    - 'Good to Go': 'High engagement rate of [X]% indicates strong audience connection and trust.'
+    - 'Average': 'Consistent reach but moderate engagement rate of [X]% suggests stable but passive consumption.'
+    - 'Low': 'Low engagement rate of [X]% despite high follower count suggests potential audience mismatch.'
 
     STATE BREAKDOWN:
-    For Indian audiences, provide a detailed distribution across at least 20 States/UTs based on linguistic and cultural cues.
-
-    BULK PROCESSING:
-    Ensure every creator mentioned in the input is represented in the output 'creators' array.
+    Provide a detailed distribution across at least 20 Indian States/UTs.
   `;
 
   const parts = [
-    { text: `Analyze the following creator roster for Ice Media Labs and provide proper, detailed KPI and demographic categorizations:\n${inputs}` },
+    { text: `Analyze this creator roster. Calculate engagement rates strictly using the Median of the last 30 posts as shown in the agency algorithm:\n${inputs}` },
     ...(images || []).map(img => ({ inlineData: img }))
   ];
 
