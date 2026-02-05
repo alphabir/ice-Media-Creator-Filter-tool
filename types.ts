@@ -62,6 +62,7 @@ export interface AnalysisResult {
     dominantFormat: string;
     brandSafety: BrandSafety;
     intent: AudienceIntent;
+    audienceIntentDetails: string;
   };
   reachEstimation: {
     category: ReachCategory;

@@ -275,6 +275,14 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
                       Analysis Rationale
                     </h4>
                     <div className="bg-white p-8 rounded-3xl text-[13px] text-slate-600 leading-relaxed border border-slate-200 shadow-sm">
+                      <div className="mb-6 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                        <h5 className="text-[10px] font-black text-indigo-700 uppercase mb-2 flex items-center">
+                          <span className="mr-1.5">🎯</span> Audience Psychology: {selectedCreator.contentIntelligence.intent}
+                        </h5>
+                        <p className="text-[12px] font-medium text-slate-700">
+                          {selectedCreator.contentIntelligence.audienceIntentDetails}
+                        </p>
+                      </div>
                       <p className="mb-4"><strong>Data Signal Reasoning:</strong> {selectedCreator.demographics.reasoning}</p>
                       <p><strong>Reach Categorization:</strong> {selectedCreator.reachEstimation.reasoning}</p>
                     </div>
