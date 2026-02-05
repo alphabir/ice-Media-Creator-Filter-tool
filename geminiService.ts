@@ -140,7 +140,11 @@ const ANALYSIS_SCHEMA = {
   required: ["creators", "summary"]
 };
 
-export async function analyzeCreators(inputs: string, images?: { data: string; mimeType: string }[]): Promise<AnalysisResponse> {
+export async function analyzeCreators(
+  inputs: string, 
+  images?: { data: string; mimeType: string }[],
+  documents?: { data: string; mimeType: string }[]
+): Promise<AnalysisResponse> {
   if (!API_KEY) {
     throw new Error("Gemini API Key is missing.");
   }
@@ -152,18 +156,14 @@ export async function analyzeCreators(inputs: string, images?: { data: string; m
     
     CORE KPI LOGIC (STRICT):
     Calculate the 'Engagement Rate' using the following algorithm:
-    1. Identify the metrics for the last 30 posts (images, carousels, reels).
+    1. Identify the metrics for the last 30 posts (images, carousels, reels) from text or attached rosters (Excel/PDF/Doc).
     2. Calculate the MEDIAN Likes (Avg. Likes) and MEDIAN Comments (Avg. Comments) from these posts.
     3. Formula: Engagement Rate = ((Median Likes + Median Comments) / Total Followers) * 100.
     
-    You MUST cite the calculated Engagement Rate percentage in the 'engagement.insight' field.
-    Example: "Calculating an engagement rate of 4.2% using the median likes and comments of the last 30 posts..."
-
-    ANALYTICAL DEPTH:
-    For every creator, perform a proper analysis of:
-    1. All visible posts (captions, likes, comments) provided in signals.
-    2. Content themes and consistency.
-    3. Audience sentiment and intent.
+    DOCUMENT PROCESSING:
+    You are provided with text inputs AND potentially multi-modal attachments (Images, PDF, Excel, Word).
+    - Parse handles and metrics from any attached spreadsheets or documents.
+    - Treat screenshots as OCR sources.
 
     KPI INSIGHT TEMPLATES:
     - 'Good to Go': 'High engagement rate of [X]% indicates strong audience connection and trust.'
@@ -174,9 +174,10 @@ export async function analyzeCreators(inputs: string, images?: { data: string; m
     Provide a detailed distribution across at least 20 Indian States/UTs.
   `;
 
-  const parts = [
-    { text: `Analyze this creator roster. Calculate engagement rates strictly using the Median of the last 30 posts as shown in the agency algorithm:\n${inputs}` },
-    ...(images || []).map(img => ({ inlineData: img }))
+  const parts: any[] = [
+    { text: `Analyze this creator roster. Calculate engagement rates strictly using the Median of the last 30 posts. Rosters may be in text, images, or attached documents:\n${inputs}` },
+    ...(images || []).map(img => ({ inlineData: img })),
+    ...(documents || []).map(doc => ({ inlineData: doc }))
   ];
 
   try {
