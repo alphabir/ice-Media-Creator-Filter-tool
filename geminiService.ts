@@ -1,8 +1,8 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { AnalysisResponse, BrandSafety, AudienceIntent, ReachCategory } from "./types";
+import { AnalysisResponse } from "./types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const API_KEY = process.env.API_KEY;
 
 const KPI_METRIC_SCHEMA = {
   type: Type.OBJECT,
@@ -139,6 +139,12 @@ const ANALYSIS_SCHEMA = {
 };
 
 export async function analyzeCreators(inputs: string, images?: { data: string; mimeType: string }[]): Promise<AnalysisResponse> {
+  if (!API_KEY) {
+    throw new Error("Gemini API Key is missing. Please check your environment variables.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+
   const systemInstruction = `
     You are an AI Creator Intelligence & Audience Analysis Tool built for a media agency.
     
