@@ -77,7 +77,7 @@ const ANALYSIS_SCHEMA = {
               dominantFormat: { type: Type.STRING },
               brandSafety: { type: Type.STRING },
               intent: { type: Type.STRING },
-              audienceIntentDetails: { type: Type.STRING, description: "Detailed reasoning for the selected audience intent with specific examples or observations from the creator's content style." }
+              audienceIntentDetails: { type: Type.STRING, description: "Detailed reasoning for the selected audience intent." }
             },
             required: ["primaryNiche", "secondaryNiche", "dominantFormat", "brandSafety", "intent", "audienceIntentDetails"]
           },
@@ -141,7 +141,7 @@ const ANALYSIS_SCHEMA = {
 
 export async function analyzeCreators(inputs: string, images?: { data: string; mimeType: string }[]): Promise<AnalysisResponse> {
   if (!API_KEY) {
-    throw new Error("Gemini API Key is missing. Please check your environment variables.");
+    throw new Error("Gemini API Key is missing.");
   }
 
   const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -149,39 +149,23 @@ export async function analyzeCreators(inputs: string, images?: { data: string; m
   const systemInstruction = `
     You are the Ice Media Labs AI Creator Intelligence Agent.
     
-    KPI EVALUATION LOGIC:
-    For every creator, perform a verification against 4 key performance pillars:
-    1. Brand Awareness: Impressions, Reach, Growth, Mentions.
-    2. Engagement: Interaction depth, Sentiment, Shares/Saves.
-    3. Conversions: Bio-link intent, Purchase signals, 'Link in bio' frequency.
-    4. ROI & EMV: Performance value vs Niche benchmarks.
-    
-    CRITICAL: For each KPI category, you MUST provide a granular 'insight' string derived directly from the creator's metrics:
-    - If 'Good to Go': Use insights like 'High engagement rate compared to category average indicates strong audience connection and trust' or 'Exceptional reach with high save rate suggests content resonance and value'.
-    - If 'Average': Use insights like 'Consistent reach but low shares and saves indicate passive consumption or niche audience limitations'.
-    - If 'Low': Use insights like 'Low conversion rate despite high follower count suggests potential audience mismatch or lack of clear call-to-action'.
+    TASK: Analyze the provided list of creators in BULK. 
+    Maintain high precision for every single entry in the roster.
 
-    AUDIENCE INTENT:
-    Classify why the audience follows this creator (Entertainment, Learning, Purchase, Inspiration).
-    Crucially, provide "audienceIntentDetails" which explains the choice with specific examples of content hooks, emotional triggers, or calls to action observed.
+    KPI INSIGHT GUIDELINES (MANDATORY):
+    - 'Good to Go': Use metrics-driven insights like 'High engagement rate vs category avg indicates strong connection' or 'Exceptional reach with high save rate suggests content value'.
+    - 'Average': Use insights like 'Consistent reach but low shares/saves indicate passive consumption' or 'Moderate growth with stable engagement but lacks high conversion signals'.
+    - 'Low': Use insights like 'Low conversion rate despite high followers suggests audience mismatch' or 'Stagnant engagement signals indicate potential burnout or content fatigue'.
 
-    COMPREHENSIVE INDIA STATE ANALYSIS:
-    If India is a primary or secondary region, you MUST provide an extremely detailed "stateBreakdown".
-    DO NOT limit to just a few states. You MUST include a probabilistic distribution across at least 20 different Indian states and union territories. 
-    Select from the following list to reach the minimum count of 20:
-    - STATES: Andhra Pradesh, Arunachal Pradesh, Assam, Bihar, Chhattisgarh, Goa, Gujarat, Haryana, Himachal Pradesh, Jharkhand, Karnataka, Kerala, Madhya Pradesh, Maharashtra, Manipur, Meghalaya, Mizoram, Nagaland, Odisha, Punjab, Rajasthan, Sikkim, Tamil Nadu, Telangana, Tripura, Uttar Pradesh, Uttarakhand, West Bengal.
-    - UNION TERRITORIES: Andaman and Nicobar Islands, Chandigarh, Dadra and Nagar Haveli and Daman and Diu, Delhi (NCR), Jammu and Kashmir, Ladakh, Lakshadweep, Puducherry.
-    
-    Base the distribution on language cues, cultural markers, and urban density signals found in the creator's profile and content.
+    STATE BREAKDOWN:
+    For Indian audiences, provide a detailed distribution across at least 20 States/UTs based on linguistic and cultural cues.
 
-    CONSTRAINTS:
-    - All data is AI-Estimated based on logical inference for Ice Media Labs.
-    - Professional, agency-tier tone. No guessing without rationale.
-    - Ensure the sum of percentages in stateBreakdown is logical (close to 100% of the Indian audience segment).
+    BULK PROCESSING:
+    Ensure every creator mentioned in the input is represented in the output 'creators' array.
   `;
 
   const parts = [
-    { text: `Analyze the following creator data for Ice Media Labs and provide comprehensive KPI and state-level demographic categorizations:\n${inputs}` },
+    { text: `Analyze the following creator roster for Ice Media Labs and provide proper, detailed KPI and demographic categorizations:\n${inputs}` },
     ...(images || []).map(img => ({ inlineData: img }))
   ];
 

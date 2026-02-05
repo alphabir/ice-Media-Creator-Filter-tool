@@ -9,18 +9,16 @@ interface CreatorTableProps {
 
 const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
   const [selectedCreator, setSelectedCreator] = useState<AnalysisResult | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const getSafetyColor = (level: BrandSafety) => {
-    switch (level) {
-      case BrandSafety.LOW: return 'text-green-600 bg-green-50';
-      case BrandSafety.MEDIUM: return 'text-amber-600 bg-amber-50';
-      case BrandSafety.HIGH: return 'text-red-600 bg-red-50';
-      default: return 'text-slate-600 bg-slate-50';
-    }
-  };
+  const filteredData = data.filter(creator => 
+    creator.handle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    creator.contentIntelligence.primaryNiche.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const getTierColor = (tier: KPICategory) => {
-    switch (tier) {
+  const getTierColor = (tier: string) => {
+    const t = tier as KPICategory;
+    switch (t) {
       case KPICategory.GOOD: return 'text-green-700 bg-green-100 border-green-200';
       case KPICategory.AVERAGE: return 'text-amber-700 bg-amber-100 border-amber-200';
       case KPICategory.LOW: return 'text-red-700 bg-red-100 border-red-200';
@@ -38,127 +36,177 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
     }
   };
 
+  const downloadCSV = () => {
+    const headers = ['Handle', 'Primary Niche', 'Overall Tier', 'Primary Region', 'Density %', 'Reach', 'Campaign Score'];
+    const rows = data.map(c => [
+      c.handle,
+      c.contentIntelligence.primaryNiche,
+      c.kpiAnalysis.overallTier,
+      c.regions.primary.name,
+      c.regions.primary.percentage,
+      c.reachEstimation.category,
+      c.campaignFit.score
+    ]);
+    
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "IceMediaLabs_BulkReport.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-white">
-      <table className="min-w-full divide-y divide-slate-200">
-        <thead className="bg-slate-50">
-          <tr>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Creator</th>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">KPI Tier</th>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Region Analysis</th>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Reach</th>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Score</th>
-            <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-slate-200">
-          {data.map((creator, idx) => (
-            <tr key={idx} className="hover:bg-slate-50 transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 h-10 w-10">
-                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
+      {/* Table Actions */}
+      <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
+        <div className="relative flex-grow max-w-md">
+          <input 
+            type="text" 
+            placeholder="Search roster by handle or niche..." 
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <svg className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </div>
+        <button 
+          onClick={downloadCSV}
+          className="flex items-center space-x-2 px-6 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-all text-xs font-black uppercase tracking-widest border border-indigo-100 shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          <span>Export Agency CSV</span>
+        </button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Creator</th>
+              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">KPI Tier</th>
+              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Regional Focus</th>
+              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Reach Cat.</th>
+              <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Strategy</th>
+              <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Action</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-slate-100">
+            {filteredData.map((creator, idx) => (
+              <tr key={idx} className="group hover:bg-slate-50/80 transition-all duration-200">
+                <td className="px-6 py-5 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-11 w-11 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-sm shadow-md group-hover:scale-105 transition-transform">
                       {creator.handle.substring(1, 2).toUpperCase()}
                     </div>
+                    <div className="ml-4">
+                      <div className="text-sm font-black text-slate-900">{creator.handle}</div>
+                      <div className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">{creator.contentIntelligence.primaryNiche}</div>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <div className="text-sm font-bold text-slate-900">{creator.handle}</div>
-                    <div className="text-[10px] text-slate-500 uppercase font-bold">{creator.contentIntelligence.primaryNiche}</div>
+                </td>
+                <td className="px-6 py-5 whitespace-nowrap">
+                  <span className={`px-3 py-1 text-[9px] font-black rounded-lg border ${getTierColor(creator.kpiAnalysis.overallTier)} uppercase tracking-widest`}>
+                    {creator.kpiAnalysis.overallTier}
+                  </span>
+                </td>
+                <td className="px-6 py-5 whitespace-nowrap">
+                  <div className="text-sm text-slate-900 font-bold">{creator.regions.primary.name}</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{creator.regions.primary.percentage}% Density</div>
+                </td>
+                <td className="px-6 py-5 whitespace-nowrap">
+                  <span className={`px-2.5 py-1 inline-flex text-[9px] font-black rounded-lg ${getReachColor(creator.reachEstimation.category)} uppercase tracking-widest`}>
+                    {creator.reachEstimation.category}
+                  </span>
+                </td>
+                <td className="px-6 py-5 whitespace-nowrap">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                    <span className="text-xs font-black text-slate-900">{creator.campaignFit.score}/10</span>
                   </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md border ${getTierColor(creator.kpiAnalysis.overallTier)}`}>
-                  {creator.kpiAnalysis.overallTier.toUpperCase()}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-slate-900 font-medium">{creator.regions.primary.name}</div>
-                <div className="text-[10px] text-slate-500">{creator.regions.primary.percentage}% Density</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full ${getReachColor(creator.reachEstimation.category)} uppercase tracking-tighter`}>
-                  {creator.reachEstimation.category}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center space-x-2">
-                  <div className="text-sm font-bold text-slate-900">{creator.campaignFit.score}/10</div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button 
-                  onClick={() => setSelectedCreator(creator)}
-                  className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-4 py-1.5 rounded-lg transition-all text-xs font-bold"
-                >
-                  FULL ANALYSIS
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </td>
+                <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                  <button 
+                    onClick={() => setSelectedCreator(creator)}
+                    className="text-white hover:bg-indigo-700 bg-indigo-600 px-5 py-2 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95"
+                  >
+                    Details
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {filteredData.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-bold italic">
+                  No creators found matching your search criteria.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {selectedCreator && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto border border-slate-200">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-white rounded-[40px] shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto border border-slate-200 flex flex-col animate-in zoom-in fade-in duration-300">
             {/* Modal Header */}
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-20">
-              <div className="flex items-center space-x-4">
-                <div className="h-14 w-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-indigo-100">
+            <div className="p-10 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-20">
+              <div className="flex items-center space-x-6">
+                <div className="h-20 w-20 rounded-3xl bg-slate-900 flex items-center justify-center text-white font-black text-4xl shadow-2xl shadow-slate-200">
                   {selectedCreator.handle.substring(1, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedCreator.handle}</h3>
-                  <div className="flex items-center space-x-2 mt-0.5">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getTierColor(selectedCreator.kpiAnalysis.overallTier)}`}>
-                      OVERALL: {selectedCreator.kpiAnalysis.overallTier.toUpperCase()}
+                  <h3 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{selectedCreator.handle}</h3>
+                  <div className="flex items-center space-x-3 mt-1.5">
+                    <span className={`text-[10px] font-black px-3 py-1 rounded-xl border ${getTierColor(selectedCreator.kpiAnalysis.overallTier)} uppercase tracking-[0.2em]`}>
+                      {selectedCreator.kpiAnalysis.overallTier}
                     </span>
-                    <span className="text-xs text-slate-400 font-medium tracking-wide">• INFERRED DATASET</span>
+                    <span className="text-[10px] text-slate-400 font-black tracking-widest uppercase">• Agency Intelligence Verified</span>
                   </div>
                 </div>
               </div>
               <button 
                 onClick={() => setSelectedCreator(null)}
-                className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                className="w-12 h-12 flex items-center justify-center hover:bg-slate-100 rounded-2xl text-slate-400 transition-all active:scale-90"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-8 space-y-12 bg-slate-50/30">
-              
+            <div className="p-10 space-y-12 bg-slate-50/30">
               {/* KPI pillar section */}
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center">
-                    <span className="w-2.5 h-2.5 bg-indigo-500 rounded-sm mr-2.5"></span>
-                    Performance KPI Verification
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center">
+                    Performance KPI Rationale
                   </h4>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Benchmarked by Niche</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {[
-                    { label: 'Brand Awareness', data: selectedCreator.kpiAnalysis.awareness, icon: '👁️' },
+                    { label: 'Awareness', data: selectedCreator.kpiAnalysis.awareness, icon: '👁️' },
                     { label: 'Engagement', data: selectedCreator.kpiAnalysis.engagement, icon: '💬' },
-                    { label: 'Conversions', data: selectedCreator.kpiAnalysis.conversions, icon: '📈' },
-                    { label: 'ROI & EMV', data: selectedCreator.kpiAnalysis.roi, icon: '💰' }
+                    { label: 'Conversions', data: selectedCreator.kpiAnalysis.conversions, icon: '🛒' },
+                    { label: 'ROI Potential', data: selectedCreator.kpiAnalysis.roi, icon: '💎' }
                   ].map((pill, i) => (
-                    <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="text-xl">{pill.icon}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getTierColor(pill.data.category)}`}>
+                    <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm hover:shadow-xl transition-all group">
+                      <div className="flex justify-between items-start mb-6">
+                        <span className="text-2xl group-hover:scale-125 transition-transform">{pill.icon}</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border ${getTierColor(pill.data.category)} uppercase tracking-widest`}>
                           {pill.data.category}
                         </span>
                       </div>
-                      <h5 className="text-sm font-bold text-slate-800 mb-1">{pill.label}</h5>
-                      <div className="flex items-baseline space-x-1 mb-3">
-                        <span className="text-2xl font-black text-slate-900">{pill.data.score}</span>
-                        <span className="text-[10px] font-bold text-slate-400">/ 100</span>
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{pill.label}</h5>
+                      <div className="flex items-baseline space-x-1 mb-4">
+                        <span className="text-3xl font-black text-slate-900 tracking-tighter">{pill.data.score}</span>
+                        <span className="text-[10px] font-black text-slate-300 uppercase">/ 100</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                        {pill.data.insight}
+                      <p className="text-xs text-slate-500 leading-relaxed font-bold italic">
+                        "{pill.data.insight}"
                       </p>
                     </div>
                   ))}
@@ -167,14 +215,13 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Regional State Density */}
-                <div className="lg:col-span-2 space-y-6 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center mb-4">
-                    <span className="w-2.5 h-2.5 bg-green-500 rounded-sm mr-2.5"></span>
-                    Audience State & UT Density
+                <div className="lg:col-span-2 space-y-6 bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm flex flex-col">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center mb-4">
+                    Audience Regional Breakdown
                   </h4>
                   
                   {selectedCreator.stateBreakdown && selectedCreator.stateBreakdown.length > 0 ? (
-                    <div className="flex-grow overflow-y-auto pr-2" style={{ maxHeight: '600px' }}>
+                    <div className="flex-grow overflow-y-auto pr-4" style={{ maxHeight: '500px' }}>
                       <div style={{ height: `${Math.max(selectedCreator.stateBreakdown.length * 35, 400)}px`, minWidth: '300px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart 
@@ -191,108 +238,115 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
                               axisLine={false} 
                               tickLine={false} 
                               width={140} 
-                              tick={{fill: '#475569', fontWeight: 600}} 
+                              tick={{fill: '#475569', fontWeight: 800}} 
                             />
                             <Tooltip 
                               cursor={{fill: '#f8fafc'}}
-                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }} 
+                              contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', padding: '16px' }} 
                             />
-                            <Bar dataKey="percentage" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
+                            <Bar dataKey="percentage" fill="#10b981" radius={[0, 8, 8, 0]} barSize={16} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
                   ) : (
-                    <div className="h-64 flex items-center justify-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      <p className="text-slate-400 text-sm font-medium italic">State-level data not applicable or detected.</p>
+                    <div className="h-64 flex items-center justify-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
+                      <p className="text-slate-400 text-sm font-black uppercase tracking-widest italic">Insufficient Regional Signals</p>
                     </div>
                   )}
-                  <p className="text-[10px] text-slate-400 mt-4 italic">Including 28 States and 8 Union Territories</p>
                 </div>
 
                 {/* Demographics Card */}
-                <div className="space-y-6 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center">
-                    <span className="w-2.5 h-2.5 bg-indigo-500 rounded-sm mr-2.5"></span>
-                    Demographics
+                <div className="space-y-8 bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center">
+                    Audience Demographics
                   </h4>
                   
-                  <div className="h-48">
+                  <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={selectedCreator.demographics.ageGroups}>
-                        <XAxis dataKey="range" fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
+                        <XAxis dataKey="range" fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontWeight: 700}} />
                         <Tooltip 
-                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} 
+                          contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)' }} 
                         />
-                        <Bar dataKey="percentage" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="percentage" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={30} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase">Gender Skew</span>
-                      <span className="text-xs font-black text-slate-800">M:{selectedCreator.demographics.genderSkew.male}% F:{selectedCreator.demographics.genderSkew.female}%</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Gender Skew</span>
+                      <div className="text-sm font-black text-slate-900 flex justify-between">
+                         <span className="text-blue-500">M:{selectedCreator.demographics.genderSkew.male}%</span>
+                         <span className="text-pink-500">F:{selectedCreator.demographics.genderSkew.female}%</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase">Urban Split</span>
-                      <span className="text-xs font-black text-slate-800">Metro:{selectedCreator.demographics.metroSplit.metro}% Tier 2/3:{selectedCreator.demographics.metroSplit.tier2_3}%</span>
+                    <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Urban Split</span>
+                      <div className="text-sm font-black text-slate-900">
+                         Metro: {selectedCreator.demographics.metroSplit.metro}%
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-200">
-                 {/* Campaigns */}
-                 <div className="space-y-6 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center">
-                      <span className="w-2.5 h-2.5 bg-amber-500 rounded-sm mr-2.5"></span>
-                      Strategy & Brand Fit
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                 {/* Reasoning */}
+                 <div className="bg-slate-900 text-white p-10 rounded-[40px] shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10"></div>
+                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-6 flex items-center">
+                      <span className="w-2 h-2 bg-indigo-400 rounded-full mr-2"></span>
+                      Strategy Intelligence
                     </h4>
-                    <div className="flex flex-wrap gap-2.5">
-                      {selectedCreator.campaignFit.recommendedCategories.map((cat, i) => (
-                        <span key={i} className="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 text-[11px] font-black rounded-lg border border-indigo-100 uppercase tracking-tight">
-                          {cat}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-100">
-                      <h5 className="text-[10px] font-black text-amber-700 uppercase mb-2">Campaign Risks / Mismatches</h5>
-                      <div className="space-y-1.5">
-                        {selectedCreator.campaignFit.riskFlags.length > 0 ? selectedCreator.campaignFit.riskFlags.map((risk, i) => (
-                          <div key={i} className="text-[11px] text-amber-900 flex items-start font-semibold">
-                            <span className="mr-2">⚠️</span> {risk}
-                          </div>
-                        )) : <div className="text-[11px] text-slate-400 font-medium">No significant risks detected.</div>}
+                    <div className="space-y-6">
+                      <div>
+                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Audience Intent</h5>
+                        <p className="text-sm font-bold text-white leading-relaxed">
+                          {selectedCreator.contentIntelligence.audienceIntentDetails}
+                        </p>
+                      </div>
+                      <div className="pt-6 border-t border-white/10">
+                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Growth Forecast</h5>
+                        <p className="text-xs font-medium text-indigo-100 leading-relaxed italic">
+                          {selectedCreator.reachEstimation.reasoning}
+                        </p>
                       </div>
                     </div>
                  </div>
 
-                 {/* Reasoning */}
-                 <div className="space-y-6">
-                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center">
-                      <span className="w-2.5 h-2.5 bg-blue-500 rounded-sm mr-2.5"></span>
-                      Analysis Rationale
+                 {/* Campaign Fit */}
+                 <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">
+                      Recommended Brand Alignments
                     </h4>
-                    <div className="bg-white p-8 rounded-3xl text-[13px] text-slate-600 leading-relaxed border border-slate-200 shadow-sm">
-                      <div className="mb-6 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                        <h5 className="text-[10px] font-black text-indigo-700 uppercase mb-2 flex items-center">
-                          <span className="mr-1.5">🎯</span> Audience Psychology: {selectedCreator.contentIntelligence.intent}
-                        </h5>
-                        <p className="text-[12px] font-medium text-slate-700">
-                          {selectedCreator.contentIntelligence.audienceIntentDetails}
-                        </p>
+                    <div className="flex flex-wrap gap-3">
+                      {selectedCreator.campaignFit.recommendedCategories.map((cat, i) => (
+                        <span key={i} className="px-5 py-2 bg-slate-900 text-white text-[10px] font-black rounded-2xl uppercase tracking-[0.1em]">
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="p-6 bg-red-50 rounded-[32px] border border-red-100">
+                      <h5 className="text-[10px] font-black text-red-700 uppercase mb-3 tracking-widest flex items-center">
+                        <span className="mr-2">🚩</span> Cautionary Flags
+                      </h5>
+                      <div className="space-y-2">
+                        {selectedCreator.campaignFit.riskFlags.length > 0 ? selectedCreator.campaignFit.riskFlags.map((risk, i) => (
+                          <div key={i} className="text-xs text-red-900 flex items-start font-bold">
+                            • {risk}
+                          </div>
+                        )) : <div className="text-xs text-slate-400 font-bold italic">No critical risk factors detected.</div>}
                       </div>
-                      <p className="mb-4"><strong>Data Signal Reasoning:</strong> {selectedCreator.demographics.reasoning}</p>
-                      <p><strong>Reach Categorization:</strong> {selectedCreator.reachEstimation.reasoning}</p>
                     </div>
                  </div>
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-100 rounded-b-2xl text-center">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                Agency Intelligence Verification • AI-Estimated Metrics • Probabilistic Reasoning applied
+            <div className="p-8 bg-slate-50 border-t border-slate-100 rounded-b-[40px] text-center">
+              <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">
+                Ice Media Labs • Probabilistic Analysis Reporting • Final Agency Verification Required
               </p>
             </div>
           </div>
