@@ -64,6 +64,18 @@ const ANALYSIS_SCHEMA = {
               required: ["state", "percentage"]
             }
           },
+          cityBreakdown: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                city: { type: Type.STRING },
+                percentage: { type: Type.NUMBER },
+                parentState: { type: Type.STRING }
+              },
+              required: ["city", "percentage", "parentState"]
+            }
+          },
           kpiAnalysis: {
             type: Type.OBJECT,
             properties: {
@@ -165,23 +177,22 @@ export async function analyzeCreators(
     2. Calculate MEDIAN Likes (Avg. Likes) and MEDIAN Comments (Avg. Comments).
     3. Formula: Engagement Rate = ((Median Likes + Median Comments) / Total Followers) * 100.
     
-    In the 'engagement.insight' field, you MUST state the calculated rate and mention that it is based on the median of the last 30 posts.
-
     ROSTER DATA HANDLING:
     You are receiving text that contains extracted data from Excel, Word, and Text rosters.
-    Process these lists bulk-style. 
+    Process these lists bulk-style.
+
+    REGIONAL DENSITY PRIORITY:
+    Identify and highlight 'Bihar' audience density. Specifically, try to calculate the percentage of the audience located in 'Patna'. Use linguistic markers, dialect, and brand mentions to infer this concentration. 
 
     STATE BREAKDOWN:
     Provide a detailed distribution across at least 20 Indian States/UTs.
   `;
 
-  // Filter binary parts to ONLY supported MIME types for Gemini
-  // Gemini does NOT support DOCX/XLSX natively in generateContent inlineData
   const validImageParts = (images || []).filter(img => SUPPORTED_BINARY_MIME_TYPES.includes(img.mimeType));
   const validDocParts = (documents || []).filter(doc => SUPPORTED_BINARY_MIME_TYPES.includes(doc.mimeType));
 
   const parts: any[] = [
-    { text: `Analyze this creator roster. Calculate engagement rates strictly using the Median of the last 30 posts. Roster data:\n${inputs}` },
+    { text: `Analyze this creator roster. Identify regional hotspots, specifically Bihar and Patna density. Roster data:\n${inputs}` },
     ...validImageParts.map(img => ({ inlineData: img })),
     ...validDocParts.map(doc => ({ inlineData: doc }))
   ];

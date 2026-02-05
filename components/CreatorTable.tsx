@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AnalysisResult, BrandSafety, ReachCategory, KPICategory } from '../types';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 
 interface CreatorTableProps {
   data: AnalysisResult[];
@@ -60,6 +60,9 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
     link.click();
     document.body.removeChild(link);
   };
+
+  const biharData = selectedCreator?.stateBreakdown?.find(s => s.state.toLowerCase() === 'bihar');
+  const patnaData = selectedCreator?.cityBreakdown?.find(c => c.city.toLowerCase() === 'patna');
 
   return (
     <div className="bg-white">
@@ -170,6 +173,38 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
             </div>
 
             <div className="p-10 space-y-12 bg-slate-50/30">
+              {/* Bihar & Patna Spotlight Section */}
+              {biharData && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-orange-50/50 p-8 rounded-[40px] border-2 border-orange-100 shadow-xl shadow-orange-100/20 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                    <svg className="w-32 h-32 text-orange-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="inline-flex items-center space-x-2 bg-orange-600 px-3 py-1 rounded-full">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                      <span className="text-[9px] font-black text-white uppercase tracking-widest">Priority Roster Focus: Bihar</span>
+                    </div>
+                    <div>
+                      <h4 className="text-4xl font-black text-orange-950 tracking-tighter uppercase mb-1">Bihar Intelligence</h4>
+                      <p className="text-sm font-bold text-orange-800 leading-relaxed opacity-80">
+                        This creator demonstrates high resonance within the Bihar belt. 
+                        Targeting this segment offers significant local ROI potential.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white p-6 rounded-[32px] border border-orange-200 shadow-sm flex flex-col items-center justify-center text-center">
+                      <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">Bihar State Density</span>
+                      <div className="text-4xl font-black text-orange-600">{biharData.percentage}%</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-[32px] border border-orange-200 shadow-sm flex flex-col items-center justify-center text-center">
+                      <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">Patna City Focus</span>
+                      <div className="text-4xl font-black text-orange-800">{patnaData?.percentage || 'Low'}%</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Brand Summary Section */}
               <div className="bg-white p-8 rounded-[32px] border-l-8 border-indigo-600 shadow-sm">
                 <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-3">Brand & Niche Summary</h4>
@@ -212,7 +247,7 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6 bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm flex flex-col">
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center mb-4">
-                    Audience Regional Breakdown
+                    Full State Distribution
                   </h4>
                   {selectedCreator.stateBreakdown && (
                     <div className="flex-grow overflow-y-auto pr-4" style={{ maxHeight: '500px' }}>
@@ -222,8 +257,15 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                             <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} unit="%" />
                             <YAxis dataKey="state" type="category" fontSize={10} axisLine={false} tickLine={false} width={140} tick={{fill: '#475569', fontWeight: 800}} />
-                            <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', padding: '16px' }} />
-                            <Bar dataKey="percentage" fill="#10b981" radius={[0, 8, 8, 0]} barSize={16} />
+                            <Tooltip 
+                              cursor={{fill: '#f8fafc'}} 
+                              contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', padding: '16px' }} 
+                            />
+                            <Bar dataKey="percentage" radius={[0, 8, 8, 0]} barSize={16}>
+                              {selectedCreator.stateBreakdown.sort((a,b) => b.percentage - a.percentage).map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.state.toLowerCase() === 'bihar' ? '#ea580c' : '#10b981'} />
+                              ))}
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -256,46 +298,10 @@ const CreatorTable: React.FC<CreatorTableProps> = ({ data }) => {
                   </div>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                 <div className="bg-slate-900 text-white p-10 rounded-[40px] shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-[80px] opacity-20 -mr-10 -mt-10"></div>
-                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-6 flex items-center">
-                      Strategy Intelligence
-                    </h4>
-                    <div className="space-y-6">
-                      <div>
-                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Audience Psychology</h5>
-                        <p className="text-sm font-bold text-white leading-relaxed">{selectedCreator.contentIntelligence.audienceIntentDetails}</p>
-                      </div>
-                      <div className="pt-6 border-t border-white/10">
-                        <h5 className="text-[10px] font-black text-white/50 uppercase mb-2 tracking-widest">Growth Reasonings</h5>
-                        <p className="text-xs font-medium text-indigo-100 leading-relaxed italic">{selectedCreator.reachEstimation.reasoning}</p>
-                      </div>
-                    </div>
-                 </div>
-
-                 <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Campaign Strategy</h4>
-                    <div className="flex flex-wrap gap-3">
-                      {selectedCreator.campaignFit.recommendedCategories.map((cat, i) => (
-                        <span key={i} className="px-5 py-2 bg-slate-900 text-white text-[10px] font-black rounded-2xl uppercase tracking-[0.1em]">{cat}</span>
-                      ))}
-                    </div>
-                    <div className="p-6 bg-red-50 rounded-[32px] border border-red-100">
-                      <h5 className="text-[10px] font-black text-red-700 uppercase mb-3 tracking-widest flex items-center">🚩 Risk Flags</h5>
-                      <div className="space-y-2">
-                        {selectedCreator.campaignFit.riskFlags.length > 0 ? selectedCreator.campaignFit.riskFlags.map((risk, i) => (
-                          <div key={i} className="text-xs text-red-900 flex items-start font-bold">• {risk}</div>
-                        )) : <div className="text-xs text-slate-400 font-bold italic">Clean brand safety profile.</div>}
-                      </div>
-                    </div>
-                 </div>
-              </div>
             </div>
 
             <div className="p-8 bg-slate-50 border-t border-slate-100 rounded-b-[40px] text-center">
-              <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">ICE MEDIA LABS • PROPER AGENCY INTELLIGENCE OUTPUT</p>
+              <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em]">ICE MEDIA LABS • BIHAR & PATNA PRIORITY INTELLIGENCE • AGENCY MODE</p>
             </div>
           </div>
         </div>

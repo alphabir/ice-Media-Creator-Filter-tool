@@ -35,6 +35,12 @@ export interface StateData {
   percentage: number;
 }
 
+export interface CityData {
+  city: string;
+  percentage: number;
+  parentState: string;
+}
+
 export interface KPIMetric {
   category: KPICategory;
   score: number; // 1-100
@@ -51,12 +57,13 @@ export interface KPIAnalysis {
 
 export interface AnalysisResult {
   handle: string;
-  brandSummary: string; // New: Summary of brand/niche based on bio and content
+  brandSummary: string;
   regions: {
     primary: RegionSplit;
     secondary: RegionSplit[];
   };
   stateBreakdown?: StateData[];
+  cityBreakdown?: CityData[]; // New: City-level granularity (e.g. Patna)
   contentIntelligence: {
     primaryNiche: string;
     secondaryNiche: string;
