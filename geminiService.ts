@@ -4,6 +4,11 @@ import { AnalysisResponse } from "./types";
 
 const API_KEY = process.env.API_KEY;
 
+const SUPPORTED_BINARY_MIME_TYPES = [
+  'image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif',
+  'application/pdf'
+];
+
 const KPI_METRIC_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -154,30 +159,31 @@ export async function analyzeCreators(
   const systemInstruction = `
     You are the Ice Media Labs AI Creator Intelligence Agent.
     
-    CORE KPI LOGIC (STRICT):
-    Calculate the 'Engagement Rate' using the following algorithm:
-    1. Identify the metrics for the last 30 posts (images, carousels, reels) from text or attached rosters (Excel/PDF/Doc).
-    2. Calculate the MEDIAN Likes (Avg. Likes) and MEDIAN Comments (Avg. Comments) from these posts.
+    CORE KPI LOGIC (STRICT AGENCY ALGORITHM):
+    Calculate the 'Engagement Rate' strictly using the MEDIAN approach:
+    1. Identify metrics for the last 30 posts from provided text, signals, or rosters.
+    2. Calculate MEDIAN Likes (Avg. Likes) and MEDIAN Comments (Avg. Comments).
     3. Formula: Engagement Rate = ((Median Likes + Median Comments) / Total Followers) * 100.
     
-    DOCUMENT PROCESSING:
-    You are provided with text inputs AND potentially multi-modal attachments (Images, PDF, Excel, Word).
-    - Parse handles and metrics from any attached spreadsheets or documents.
-    - Treat screenshots as OCR sources.
+    In the 'engagement.insight' field, you MUST state the calculated rate and mention that it is based on the median of the last 30 posts.
 
-    KPI INSIGHT TEMPLATES:
-    - 'Good to Go': 'High engagement rate of [X]% indicates strong audience connection and trust.'
-    - 'Average': 'Consistent reach but moderate engagement rate of [X]% suggests stable but passive consumption.'
-    - 'Low': 'Low engagement rate of [X]% despite high follower count suggests potential audience mismatch.'
+    ROSTER DATA HANDLING:
+    You are receiving text that contains extracted data from Excel, Word, and Text rosters.
+    Process these lists bulk-style. 
 
     STATE BREAKDOWN:
     Provide a detailed distribution across at least 20 Indian States/UTs.
   `;
 
+  // Filter binary parts to ONLY supported MIME types for Gemini
+  // Gemini does NOT support DOCX/XLSX natively in generateContent inlineData
+  const validImageParts = (images || []).filter(img => SUPPORTED_BINARY_MIME_TYPES.includes(img.mimeType));
+  const validDocParts = (documents || []).filter(doc => SUPPORTED_BINARY_MIME_TYPES.includes(doc.mimeType));
+
   const parts: any[] = [
-    { text: `Analyze this creator roster. Calculate engagement rates strictly using the Median of the last 30 posts. Rosters may be in text, images, or attached documents:\n${inputs}` },
-    ...(images || []).map(img => ({ inlineData: img })),
-    ...(documents || []).map(doc => ({ inlineData: doc }))
+    { text: `Analyze this creator roster. Calculate engagement rates strictly using the Median of the last 30 posts. Roster data:\n${inputs}` },
+    ...validImageParts.map(img => ({ inlineData: img })),
+    ...validDocParts.map(doc => ({ inlineData: doc }))
   ];
 
   try {

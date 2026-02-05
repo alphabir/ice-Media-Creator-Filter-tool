@@ -35,29 +35,10 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAnalyze }) => {
 
     for (const file of Array.from(files)) {
       const fileName = file.name.toLowerCase();
+      const mimeType = file.type.toLowerCase();
 
-      // 1. Handle Images (Native Multi-modal)
-      if (file.type.startsWith('image/')) {
-        const base64 = await fileToBase64(file);
-        newAttachments.push({
-          data: base64,
-          mimeType: file.type,
-          name: file.name,
-          type: 'image'
-        });
-      } 
-      // 2. Handle PDF (Native Multi-modal)
-      else if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
-        const base64 = await fileToBase64(file);
-        newAttachments.push({
-          data: base64,
-          mimeType: 'application/pdf',
-          name: file.name,
-          type: 'pdf'
-        });
-      }
-      // 3. Handle Excel (.xlsx, .xls) - Parse to CSV Text
-      else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // 1. Handle Excel (.xlsx, .xls) - Parse to Text (Gemini doesn't support binary xlsx)
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || mimeType.includes('spreadsheetml') || mimeType.includes('excel')) {
         try {
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: 'array' });
@@ -72,8 +53,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAnalyze }) => {
           console.error("Excel Parsing Error:", err);
         }
       }
-      // 4. Handle Word (.docx, .doc) - Parse to Text
-      else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+      // 2. Handle Word (.docx, .doc) - Parse to Text (Gemini doesn't support binary docx)
+      else if (fileName.endsWith('.docx') || fileName.endsWith('.doc') || mimeType.includes('wordprocessingml') || mimeType.includes('msword')) {
         try {
           const buffer = await file.arrayBuffer();
           const result = await mammoth.extractRawText({ arrayBuffer: buffer });
@@ -82,8 +63,28 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAnalyze }) => {
           console.error("Word Parsing Error:", err);
         }
       }
+      // 3. Handle PDF (Native Multi-modal support)
+      else if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
+        const base64 = await fileToBase64(file);
+        newAttachments.push({
+          data: base64,
+          mimeType: 'application/pdf',
+          name: file.name,
+          type: 'pdf'
+        });
+      }
+      // 4. Handle Images (Native Multi-modal support)
+      else if (mimeType.startsWith('image/')) {
+        const base64 = await fileToBase64(file);
+        newAttachments.push({
+          data: base64,
+          mimeType: mimeType,
+          name: file.name,
+          type: 'image'
+        });
+      } 
       // 5. Handle Text/CSV
-      else if (file.type === 'text/plain' || file.type === 'text/csv' || fileName.endsWith('.csv') || fileName.endsWith('.txt')) {
+      else if (mimeType === 'text/plain' || mimeType === 'text/csv' || fileName.endsWith('.csv') || fileName.endsWith('.txt')) {
         const content = await file.text();
         newExtractedData.push(`--- ROSTER TEXT: ${file.name} ---\n${content}`);
       }
@@ -119,7 +120,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAnalyze }) => {
     const images = attachments.filter(a => a.type === 'image').map(a => ({ data: a.data, mimeType: a.mimeType }));
     const pdfs = attachments.filter(a => a.type === 'pdf').map(a => ({ data: a.data, mimeType: a.mimeType }));
     
-    // Combine manual text input with extracted roster data
     const combinedInput = `
       ${text}
       
@@ -192,12 +192,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAnalyze }) => {
         </div>
       </div>
 
-      {/* Attachments & Parsed Files List */}
       {(attachments.length > 0 || extractedRosterData.length > 0) && (
         <div className="space-y-6">
           {attachments.length > 0 && (
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Multi-Modal Content ({attachments.length})</h4>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Multi-Modal Attachments ({attachments.length})</h4>
               <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 {attachments.map((att, idx) => (
                   <div key={idx} className="relative group aspect-square overflow-hidden rounded-2xl border border-slate-100 shadow-sm bg-slate-50">
@@ -225,7 +224,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAnalyze }) => {
 
           {extractedRosterData.length > 0 && (
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Parsed Roster Data ({extractedRosterData.length})</h4>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Extracted Roster Data ({extractedRosterData.length})</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {extractedRosterData.map((data, idx) => {
                   const fileNameMatch = data.match(/ROSTER [A-Z]+: (.*) ---/);
@@ -242,7 +241,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onAnalyze }) => {
                         </div>
                         <div className="overflow-hidden">
                           <p className="text-xs font-black text-slate-900 truncate uppercase tracking-tight">{fileName}</p>
-                          <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-widest">Data Extracted</p>
+                          <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-widest">Text Extracted</p>
                         </div>
                       </div>
                       <button 
